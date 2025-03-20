@@ -92,6 +92,7 @@ function initializeAccount(accountNumber) {
         startTime: 0,
         totalTime: 0,
         sessionTime: 0,
+        lastUpdateTime: 0, // 마지막 업데이트 시간 추가
         goalTime: parseInt(document.getElementById(`${accountId}-goal-time`).value) * 60 * 60 * 1000, // 시간 -> 밀리초
         intervalTime: parseInt(document.getElementById(`${accountId}-interval-time`).value) * 60 * 1000, // 분 -> 밀리초
         restTime: parseInt(document.getElementById(`${accountId}-rest-time`).value) * 60 * 1000, // 분 -> 밀리초
@@ -164,7 +165,9 @@ function startTimer(accountId) {
     
     if (!accounts[accountId].isRunning) {
         accounts[accountId].isRunning = true;
-        accounts[accountId].startTime = performance.now() - accounts[accountId].sessionTime;
+        const now = performance.now();
+        accounts[accountId].startTime = now - accounts[accountId].sessionTime;
+        accounts[accountId].lastUpdateTime = now; // 마지막 업데이트 시간 설정
         
         // 버튼 상태 업데이트
         document.getElementById(`${accountId}-start`).disabled = true;
@@ -183,14 +186,23 @@ function startTimer(accountId) {
     }
 }
 
-// 타이머 업데이트 함수
+// 타이머 업데이트 함수 - 수정된 부분
 function updateTimer(accountId) {
     const now = performance.now();
     const elapsed = now - accounts[accountId].startTime;
     
+    // 실제 경과 시간 계산 (마지막 업데이트 이후 경과 시간)
+    const timeSinceLastUpdate = now - accounts[accountId].lastUpdateTime;
+    
+    // 누적 시간 및 다음 휴식까지 시간 업데이트 (실제 경과 시간 기준)
+    accounts[accountId].totalTime += timeSinceLastUpdate;
+    accounts[accountId].nextRestTime -= timeSinceLastUpdate;
+    
+    // 마지막 업데이트 시간 갱신
+    accounts[accountId].lastUpdateTime = now;
+    
+    // 세션 시간 업데이트
     accounts[accountId].sessionTime = elapsed;
-    accounts[accountId].totalTime += 1000; // 1초씩 증가
-    accounts[accountId].nextRestTime -= 1000; // 1초씩 감소
     
     // 화면 업데이트
     document.getElementById(`${accountId}-total`).textContent = formatTime(accounts[accountId].totalTime);
